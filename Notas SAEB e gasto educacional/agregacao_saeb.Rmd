@@ -1,0 +1,112 @@
+```{r}
+library(dplyr)
+library(haven)
+
+```
+
+```{r}
+saeb_5_2013 = read_dta("saeb_5_2013.dta")
+
+saeb_5_2013$ID_MUNICIPIO = as.character(saeb_5_2013$ID_MUNICIPIO)
+saeb_5_2013$ano = as.character(saeb_5_2013$ano)
+for(i in 2:5){
+    saeb_5_2013[i] = as.numeric(unlist(saeb_5_2013[i]))
+}
+saeb_5_2013 = saeb_5_2013 %>% group_by(ID_MUNICIPIO, ano) %>% summarise_all(funs(mean(., na.rm = TRUE)))
+sum(is.na(saeb_5_2013)) # 100
+
+saeb_5_2015 = read_dta("saeb_5_2015.dta")
+saeb_5_2015$ID_MUNICIPIO = as.character(saeb_5_2015$ID_MUNICIPIO)
+saeb_5_2015$ano = as.character(saeb_5_2015$ano)
+for(i in 2:5){
+    saeb_5_2015[i] = as.numeric(unlist(saeb_5_2015[i]))
+}
+saeb_5_2015 = saeb_5_2015 %>% group_by(ID_MUNICIPIO, ano) %>% summarise_all(funs(mean(., na.rm = TRUE)))
+sum(is.na(saeb_5_2015)) # 0
+
+```
+
+
+```{r}
+saeb_9_2013 = read_dta("saeb_9_2013.dta")
+saeb_9_2013$ID_MUNICIPIO = as.character(saeb_9_2013$ID_MUNICIPIO)
+saeb_9_2013$ano = as.character(saeb_9_2013$ano)
+for(i in 2:5){
+    saeb_9_2013[i] = as.numeric(unlist(saeb_9_2013[i]))
+}
+saeb_9_2013 = saeb_9_2013 %>% group_by(ID_MUNICIPIO, ano) %>% summarise_all(funs(mean(., na.rm = TRUE)))
+sum(is.na(saeb_9_2013)) # 84 Na's
+
+
+saeb_9_2015 = read_dta("saeb_9_2015.dta")
+saeb_9_2015$ID_MUNICIPIO = as.character(saeb_9_2015$ID_MUNICIPIO)
+saeb_9_2015$ano = as.character(saeb_9_2015$ano)
+for(i in 2:5){
+    saeb_9_2015[i] = as.numeric(unlist(saeb_9_2015[i]))
+}
+saeb_9_2015 = saeb_9_2015 %>% group_by(ID_MUNICIPIO, ano) %>% summarise_all(funs(mean(., na.rm = TRUE)))
+sum(is.na(saeb_9_2015)) # 0 NA's
+
+```
+
+```{r}
+colnames(saeb_5_2013) = c("municipio", "ano", "5LP", "5LP_SAEB", "5MT", "5MT_SAEB")
+colnames(saeb_5_2015) = c("municipio", "ano", "5LP", "5LP_SAEB", "5MT", "5MT_SAEB")
+saeb5 = rbind(saeb_5_2013, saeb_5_2015)
+sum(is.na(saeb5)) # 100
+
+colnames(saeb_9_2013) = c("municipio", "ano", "9LP", "9LP_SAEB", "9MT", "9MT_SAEB")
+colnames(saeb_9_2015) = c("municipio", "ano", "9LP", "9LP_SAEB", "9MT", "9MT_SAEB")
+saeb9 = rbind(saeb_9_2013, saeb_9_2015)
+sum(is.na(saeb9)) # 84
+
+```
+
+```{r}
+dados = read.csv("dados_escolas.csv")
+dados = dados[dados$ano != 2017, ]
+
+dados$municipio = as.character(dados$municipio)
+dados$ano = as.character(dados$ano)
+summary(dados)
+
+omnidados = left_join(dados, saeb5, by = c("municipio", "ano"))
+omnidados = left_join(omnidados, saeb9, by = c("municipio", "ano"))
+summary(omnidados)
+
+write.csv(omnidados, file = "educ_saeb_2013-2015.csv", row.names = FALSE)
+```
+
+```{r}
+omnidados = read.csv("educ_saeb_2013-2015.csv")
+omnidados$ano = as.character(omnidados$ano)
+omnidados$municipio = as.character(omnidados$municipio)
+
+gasto = read.csv("gasto_educfi.csv")
+
+gasto = gasto[gasto$ano == "2013" | gasto$ano == "2015",]
+gasto = gasto %>% select(codibge, ano, g_fund)
+
+gasto$g_fund = as.numeric(gasto$g_fund)
+gasto$ano = as.character(gasto$ano)
+gasto$codibge = as.character(gasto$codibge)
+
+gasto = gasto %>% group_by(codibge, ano) %>% summarise_all(funs(sum(., na.rm = TRUE)))
+colnames(gasto) = c("municipio", "ano", "gasto_fund")
+
+sum(is.na(gasto$gasto_fund)) # 0
+sum(gasto$gasto_fund == 0) # 640
+gasto[gasto$gasto_fund == 0, ]$gasto_fund <- NA
+
+omnidados2 = left_join(omnidados, gasto, by = c("ano", "municipio"))
+
+write.csv(omnidados2, file = "educ_saeb_gasto_2013-2015.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
